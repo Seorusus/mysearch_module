@@ -1,0 +1,64 @@
+<?php
+
+/**
+ * Implementation of hook_permission().
+ */
+function mysearch_permission() {
+  return array(
+    'access mysearch' => array(
+        'title' => 'Access My Search',
+        'description' => 'Allows a user to access search results',
+      )
+    );
+}
+
+/**
+ * Implementation of hook_menu().
+ * 
+ * 
+ */
+function mysearch_menu() {                           
+  $items['mysearch/%'] = array(     	//используем'%' чтобы получить искомое слово                                         
+    'page callback' => 'mysearch_searchpage', 		//используем функцию page callback для отображения страницы.
+    'page arguments' => array(1),  					// используем функцию callback для соответствия пути аргументу
+	'access arguments' => array('access mysearch'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+  return $items;
+}
+
+/**
+ * Menu callback provides a simple list of nodes matching the
+ * search term Example: hitting the URL:
+ *   http://domain.com/mysearch/example
+ * will return a list of links to nodes which have the word
+ * example in them.
+ */
+
+function mysearch_searchpage($searchterm) {
+ $content='';
+ $q=db_select('node','n');                                                //подключаемся к таблице 'node',даём ей псевдоним
+ $q->condition('status', 1);                                              //условие выборки - "Опубликовано"
+ $q->leftJoin('field_data_body', 'f', 'n.nid = f.entity_id' );            //присоединяем таблицу 'field_data_body' с псевдонимом 'f' и условием 'n.nid = f.entity_id'
+$q->fields('n',array('nid','title'));                                    //выбираем из database необходимые поля для поиска
+$result = $q->execute();
+
+
+//выводим сообщение при отсутствии результата
+
+ if($result->rowCount()==0) {
+    $content = "<h2>Result of search for $searchterm not find</h2>";
+    return $content;
+ }
+ 
+ //результат
+ $content = "<h2>Result search for $searchterm</h2><ul>";
+   while($record = $result->fetchAssoc()) {
+      $url = '../node/' . drupal_get_path_alias($record['nid']);
+      $content .= '<li><a href=' . $url . '>'. $record['title'].'</a></li>';
+   }
+ $content .='</ul>';
+
+
+ return $content;
+}
